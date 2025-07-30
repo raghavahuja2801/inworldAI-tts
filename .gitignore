@@ -1,0 +1,9 @@
+/dist
+/.env
+/node_modules
+/.vscode
+/.DS_Store
+/.idea
+/.git
+/.eslintcache
+/.cache

@@ -1,0 +1,47 @@
+{
+  "name": "inworld-tts",
+  "version": "1.0.0",
+  "description": "Simple Text-to-Speech client for Inworld AI",
+  "main": "index.js",
+  "bin": { "inworld-tts": "dist/cli.js" },
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/index.ts",
+    "test": "jest",
+    "lint": "eslint \"src/**/*.ts\"",
+    "prettier": "prettier --check \"src/**/*.{ts,js,json,md}\"",
+    "prepare": "npm run build",
+    "prepublish": "npm run build && npm test" 
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "types" : "dist/index.d.ts",
+  "devDependencies": {
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/npm": "^12.0.2",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.1.0",
+    "@typescript-eslint/eslint-plugin": "^8.38.0",
+    "@typescript-eslint/parser": "^8.38.0",
+    "eslint": "^9.32.0",
+    "jest": "^30.0.5",
+    "prettier": "^3.6.2",
+    "semantic-release": "^24.2.7",
+    "ts-jest": "^29.4.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "files" : [
+    "dist"
+  ],
+  "compilerOptions": {
+    "lib": [
+      "ES2020",
+      "DOM"
+    ]
+  }
+}
+
+
