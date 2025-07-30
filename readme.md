@@ -1,116 +1,153 @@
-# Inworld TTS
+# inworld‑tts
 
-A simple Node.js client and CLI for Inworld AI Text-to-Speech (TTS).
+**inworld‑tts** is a lightweight TypeScript/JavaScript client (plus CLI) for InworldAI’s Text‑to‑Speech API. It makes it easy to:
 
-## Features
-
-* **Easy setup**: Just supply your API key.
-* **Flexible output**: Supports MP3, WAV (PCM), Opus, μ-law, and A-law.
-* **Configurable audio**: Control sample rate, bit rate, and bit depth.
-* **Multi‑speaker scripts**: Stitch together dialogues with customizable pauses.
-* **Zero‑dependency CLI**: Quickly generate speech from the command line.
-
-## Installation
-
-```bash
-npm install inworld-tts
-```
-
-Or use it on-the-fly without global install:
-
-```bash
-npx inworld-tts speak "Hello, world!" --voice Ashley --out hello.mp3
-```
-
-## Usage
-
-### Importing the client
-
-```ts
-import { InworldTTS } from 'inworld-tts';
-
-const apiKey = process.env.INWORLD_API_KEY!;
-const tts = new InworldTTS(apiKey);
-
-// Single utterance
-const audioBuffer = await tts.speak('Hello, world!', {
-  voiceId: 'Ashley',      // see SUPPORTED_VOICES
-  format: 'wav',          // mp3, wav, opus, mulaw, alaw
-  sampleRateHertz: 16000,
-  bitDepth: 16,
-});
-
-// Save to file
-import fs from 'fs';
-fs.writeFileSync('hello.wav', audioBuffer);
-```
-
-### Multi‑speaker scripts
-
-```ts
-const speakers = [
-  { name: 'Alice', options: { voiceId: 'Alex' } },
-  { name: 'Bob',   options: { voiceId: 'Craig' } },
-];
-const script = [
-  { name: 'Alice', line: 'Hi Bob!' },
-  { name: 'Bob',   line: 'Hey Alice, how are you?' },
-];
-
-const dialogue = await tts.speakScript(speakers, script, 300);
-fs.writeFileSync('dialogue.mp3', dialogue);
-```
-
-## CLI
-
-Once installed, the `inworld-tts` command is available:
-
-```bash
-# Basic
-npx inworld-tts speak "Text to say" --voice Ashley --out output.mp3
-
-# With audio settings
-npx inworld-tts \
-  speak "Low-latency WAV" \
-  --voice Ashley \
-  --format wav \
-  --rate 8000 \
-  --depth 16 \
-  --out speech.wav
-```
-
-| Flag          | Description                                |
-| ------------- | ------------------------------------------ |
-| `--voice, -v` | Voice ID (see SUPPORTED\_VOICES)           |
-| `--out, -o`   | Output filename (default: `output.mp3`)    |
-| `--format`    | mp3, wav, opus, mulaw, alaw (default: mp3) |
-| `--rate`      | Sample rate in Hz (8k–48k)                 |
-| `--bitrate`   | Bit rate in kbps (compressed formats)      |
-| `--depth`     | Bit depth (for WAV/PCM, e.g., 16)          |
-
-## Supported Voices & Formats
-
-* **Voices**: See `SUPPORTED_VOICES` in the code for the full list (e.g., Ashley, Alex, etc.).
-* **Formats**: `mp3`, `wav`, `opus`, `mulaw`, `alaw`.
-
-## Testing
-
-This project uses [Jest](https://jestjs.io/) for unit tests.
-
-```bash
-npm test
-```
-
-## Contributing
-
-1. Fork the repo
-2. Create a feature branch
-3. Run `npm install`
-4. Make your changes
-5. Build with `npm run build`
-6. Run tests `npm test`
-7. Submit a pull request
+* Authenticate with a single API key
+* Generate speech from text in one call (`speak()`)
+* Stream audio chunks in real time (`speakStream()`, CLI `--stream`)
+* Stitch together multi‑speaker dialogues (`speakScript()`)
+* Customize format, sample‑rate, bit‑rate, pitch, speed, and more
 
 ---
+
+## 🚀 Installation
+
+```bash
+npm install inworld‑tts buffer
+```
+
+> **Note:** We polyfill Node’s `Buffer` in the browser via the `buffer` package.
+
+---
+
+## 🔑 Setup
+
+Make sure your InworldAI key is available:
+
+```bash
+export INWORLD_API_KEY="Basic YOUR_BASE64_KEY"
+```
+
+If you embed in a React/Vite app for local POC, you can use:
+
+```bash
+npm install buffer
+```
+
+```js
+// index.tsx (or App.tsx)
+import { Buffer } from 'buffer';
+window.Buffer = Buffer;
+```
+
+---
+
+## 📦 API Reference
+
+```ts
+import { InworldTTS, SpeakOptions } from 'inworld‑tts';
+
+const tts = new InworldTTS(process.env.INWORLD_API_KEY!);
+
+// 1) Simple speak
+const buffer: Buffer = await tts.speak(
+  'Hello world!',
+  { voiceId: 'Ashley', format: 'mp3', sampleRateHertz: 24000 }
+);
+
+// 2) Streaming chunks in real time
+for await (const chunk of tts.speakStream('Streaming text…', {
+  voiceId: 'Ashley', format: 'opus'
+})) {
+  // e.g. pipe to a MediaSource or write to file
+  console.log('Got chunk:', chunk.length);
+}
+
+// 3) Multi‑speaker script
+const dialogue = await tts.speakScript(
+  [
+    { name: 'Alice', options: { voiceId: 'Ashley' } },
+    { name: 'Bob',   options: { voiceId: 'Craig', pitch: 1.2 } },
+  ],
+  [
+    { name: 'Alice', line: 'Hi Bob, how are you?' },
+    { name: 'Bob',   line: "I'm good, thanks!" },
+  ],
+  300 // 300ms pause between lines
+);
+fs.writeFileSync('dialogue.wav', dialogue);
+```
+
+---
+
+## 💻 CLI Usage
+
+After building and installing globally (or via `npx`), you have:
+
+```bash
+# Basic speak:
+npx inworld‑tts speak "Hello world" --voice Ashley --out hello.mp3
+
+# Custom format & sample rate:
+npx inworld‑tts speak "Test" --voice Craig --format wav --rate 16000 --out test.wav
+
+# Real‑time streaming (writes chunks as they arrive):
+npx inworld‑tts speak "Streaming now" --voice Ashley --stream --out stream.mp3
+```
+
+**Options:**
+
+| Flag        | Description                                   | Default       |
+| ----------- | --------------------------------------------- | ------------- |
+| `--voice`   | Voice ID (e.g. `Ashley`, `Craig`)             | —             |
+| `--format`  | `mp3` \| `wav` \| `opus` \| `mulaw` \| `alaw` | `mp3`         |
+| `--rate`    | Sample rate in Hz (8,000–48,000)              | voice default |
+| `--bitrate` | Bit rate in kbps (for compressed formats)     | 128           |
+| `--depth`   | Bit depth (for `wav` / PCM)                   | 16            |
+| `--out, -o` | Output file path                              | `output.mp3`  |
+| `--stream`  | Stream mode: write chunks as they arrive      | off           |
+
+---
+
+## 🌐 Browser / React
+
+You **can** call the client directly in a React app once you polyfill `Buffer`. For POC only:
+
+```bash
+npm install inworld‑tts buffer
+```
+
+```ts
+// App.tsx
+import React, { useEffect } from 'react';
+import { Buffer } from 'buffer';
+import { InworldTTS } from 'inworld‑tts';
+
+window.Buffer = Buffer;
+
+export default function App() {
+  useEffect(() => {
+    async function demo() {
+      const tts = new InworldTTS(process.env.REACT_APP_INWORLD_KEY!);
+      const buf = await tts.speak('Hello from React!', { voiceId: 'Ashley' });
+      const blob = new Blob([buf], { type: 'audio/mp3' });
+      new Audio(URL.createObjectURL(blob)).play();
+    }
+    demo();
+  }, []);
+
+  return <h1>inworld‑tts Demo</h1>;
+}
+```
+
+---
+
+## 🤝 Contributing
+
+Feel free to open issues or PRs to improve the client, add new endpoints (e.g. `/tts/v1/voice:stream`), or enhance the CLI.
+
+---
+
+## 📜 License
 
 MIT © Raghav Ahuja

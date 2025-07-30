@@ -4,25 +4,27 @@ import fs from 'fs';
 import path from 'path';
 import { InworldTTS, SpeakOptions, SupportedVoice } from './client';
 
-// Simple CLI parser (no extra deps)
+// Minimal CLI (no extra deps)
 const argv = process.argv.slice(2);
 if (argv.length < 2 || argv[0] !== 'speak') {
-  console.error('Usage: npx inworld-tts speak "<text>" [--voice <voice>] [--out <file>] [--format <fmt>] [--rate <hz>] [--bitrate <kbps>] [--depth <bits>]');
+  console.error(
+    'Usage: npx inworld-tts speak "<text>" [--voice <voice>] [--out <file>] [--format <fmt>] [--rate <hz>] [--bitrate <kbps>] [--depth <bits>] [--stream]'
+  );
   process.exit(1);
 }
-
-const command = argv.shift();
+argv.shift(); // remove 'speak'
 const text = argv.shift()!;
+
 let voice: SupportedVoice | undefined;
 let outFile = 'output.mp3';
 let format: string | undefined;
 let sampleRate: number | undefined;
 let bitRate: number | undefined;
 let bitDepth: number | undefined;
+let stream = false;
 
 for (let i = 0; i < argv.length; i++) {
-  const arg = argv[i];
-  switch (arg) {
+  switch (argv[i]) {
     case '--voice': case '-v':
       voice = argv[++i] as SupportedVoice;
       break;
@@ -41,8 +43,11 @@ for (let i = 0; i < argv.length; i++) {
     case '--depth':
       bitDepth = parseInt(argv[++i]!, 10);
       break;
+    case '--stream': case '-s':
+      stream = true;
+      break;
     default:
-      console.warn(`Unknown option: ${arg}`);
+      console.warn(`Unknown option: ${argv[i]}`);
   }
 }
 
@@ -61,12 +66,21 @@ async function main() {
   if (bitRate) opts.bitRate = bitRate;
   if (bitDepth) opts.bitDepth = bitDepth;
 
-  console.log('Generating speech...');
+  console.log(stream ? 'Streaming speech...' : 'Generating speech...');
   try {
-    const audio = await tts.speak(text, opts);
-    const outPath = path.resolve(process.cwd(), outFile);
-    fs.writeFileSync(outPath, audio);
-    console.log(`Saved to ${outPath}`);
+    const outputPath = path.resolve(process.cwd(), outFile);
+    if (stream) {
+      const outStream = fs.createWriteStream(outputPath);
+      for await (const chunk of tts.speakStream(text, opts)) {
+        outStream.write(chunk);
+      }
+      outStream.end();
+      console.log(` Streamed audio saved to ${outputPath}`);
+    } else {
+      const audio = await tts.speak(text, opts);
+      fs.writeFileSync(outputPath, audio);
+      console.log(` Audio saved to ${outputPath}`);
+    }
   } catch (err: any) {
     console.error('Error:', err.message || err);
     process.exit(1);
